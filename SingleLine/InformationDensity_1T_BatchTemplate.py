@@ -11,6 +11,7 @@ import math as math
 import CDplot as CDp
 from multiprocessing import Pool
 import time
+import pickle
 Param=np.loadtxt('SingleLineParameters.txt')
 
 def SimInt_ID1(FITPAR):
@@ -34,7 +35,6 @@ def MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR):
                 MCMCInit[i,c]=FITPARLB[c]+(FITPARUB[c]-FITPARLB[c])*np.random.random_sample()
                 (SimInt,Amplitude)=SimInt_ID1(MCMCInit[i,:])
             C=np.sum(CD.Misfit(Intensity2,SimInt))
-            print(C)
             MCMCInit[i,int(MCPAR[1])]=C
             
         else:
@@ -304,11 +304,11 @@ for SampleNumber in range(1):
     MCPAR=np.zeros([7])
     MCPAR[0] = 1 # Chainnumber
     MCPAR[1] = len(FITPAR)
-    MCPAR[2] = 1000 #stepnumber
+    MCPAR[2] = 5000 #stepnumber
     MCPAR[3] = 0 #randomchains
-    MCPAR[4] = 1 # Resampleinterval
-    MCPAR[5] = 14 # stepbase
-    MCPAR[6] = 14 # steplength 
+    MCPAR[4] = 20 # Resampleinterval
+    MCPAR[5] = 20 # stepbase
+    MCPAR[6] = 20 # steplength 
   
     
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
@@ -356,15 +356,15 @@ for SampleNumber in range(1):
         Acceptprob=AcceptanceNumber/Acceptancetotal
         
         if Acceptprob < 0.3:
-            MCPAR[5]=MCPAR[5]+2
-            MCPAR[6]=MCPAR[6]+2
+            MCPAR[5]=MCPAR[5]+1
+            MCPAR[6]=MCPAR[6]+1
         if Acceptprob > 0.4:
-            MCPAR[5]=MCPAR[5]-2
-            MCPAR[6]=MCPAR[6]-2
+            MCPAR[5]=MCPAR[5]-1
+            MCPAR[6]=MCPAR[6]-1
         
     start_time = time.perf_counter()
-    MCPAR[0]=12
-    MCPAR[2]=5000
+    MCPAR[0]=24
+    MCPAR[2]=800000
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
     MCMC_List=[0]*int(MCPAR[0])
     for i in range(int(MCPAR[0])):
@@ -380,4 +380,6 @@ for SampleNumber in range(1):
         print(end_time-start_time)    
         
         ReSampledMatrix=F[0]
-        (vt,vct,vtLower,vctLower,vtUpper,vctUpper,WidthAvg,HeightAvg,WidthStd,HeightStd,LinePlot,InnerPlot,OuterPlot)=Uncertainty1T(ReSampledMatrix)
+        (UNCT_Param)=Uncertainty1T(ReSampledMatrix)
+        SavenameU='P'+str(int(Pitch))+'_'+'W'+str(int(W))+'_'+'H'+str(int(H))+'_'+'A'+str(int(Angle))+'Uncertainty'
+        pickle.dump(UNCT_Param,open(SavenameU,"wb"))
