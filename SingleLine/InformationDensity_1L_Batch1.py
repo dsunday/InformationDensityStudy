@@ -222,7 +222,7 @@ def Uncertainty1T(ReSampledMatrix):
         vctUpper=np.sum(vcUpper)
         return(vt,vct,vtLower,vctLower,vtUpper,vctUpper,WidthAvg,HeightAvg,WidthStd,HeightStd,LinePlot,InnerPlot,OuterPlot)
 
-for SampleNumber in range(len(Param[:,0])):
+for SampleNumber in range(1):#len(Param[:,0])):
     #QxQz map definition
     Angle = Param[SampleNumber,3]
     Pitch = Param[SampleNumber,2]
@@ -303,7 +303,7 @@ for SampleNumber in range(len(Param[:,0])):
     MCPAR=np.zeros([7])
     MCPAR[0] = 1 # Chainnumber
     MCPAR[1] = len(FITPAR)
-    MCPAR[2] = 10000 #stepnumber
+    MCPAR[2] = 1000 #stepnumber
     MCPAR[3] = 0 #randomchains
     MCPAR[4] = 20 # Resampleinterval
     MCPAR[5] = 20 # stepbase
@@ -362,8 +362,8 @@ for SampleNumber in range(len(Param[:,0])):
             MCPAR[6]=MCPAR[6]-1
         
     start_time = time.perf_counter()
-    MCPAR[0]=24
-    MCPAR[2]=800000
+    MCPAR[0]=1
+    MCPAR[2]=80
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
     MCMC_List=[0]*int(MCPAR[0])
     for i in range(int(MCPAR[0])):
@@ -380,5 +380,5 @@ for SampleNumber in range(len(Param[:,0])):
         
         ReSampledMatrix=F[0]
         (UNCT_Param)=Uncertainty1T(ReSampledMatrix)
-        SavenameU='P'+str(int(Pitch))+'_'+'W'+str(int(W))+'_'+'H'+str(int(H))+'_'+'A'+str(int(Angle))+'Uncertainty'
+        SavenameU='P'+str(int(Pitch))+'_'+'W'+str(int(W))+'_'+'H'+str(int(H))+'_'+'A'+str(int(Angle))+'Uncertainty'+'.p'
         pickle.dump(UNCT_Param,open(SavenameU,"wb"))
