@@ -66,12 +66,12 @@ def Misfit(Exp,Sim):
     
 def PBA_ID1(TPAR,SPAR,Trapnumber):
      
-    SPARLB=SPAR[0:4]*0.8
-    SPARUB=SPAR[0:4]*1.2
+    SPARLB=SPAR[0:4]*0.5
+    SPARUB=SPAR[0:4]*2
 
     FITPAR=TPAR[:,0:2].ravel()
-    FITPARLB=FITPAR*0.8
-    FITPARUB=FITPAR*1.2
+    FITPARLB=FITPAR*0.1
+    FITPARUB=FITPAR*10
     FITPAR=np.append(FITPAR,SPAR)
        
     FITPARLB=np.append(FITPARLB,SPARLB)

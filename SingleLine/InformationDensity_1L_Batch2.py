@@ -11,13 +11,13 @@ import math as math
 from multiprocessing import Pool
 import time
 import pickle
-Param=np.loadtxt('SingleLineParameters_B2.txt')
+Param=np.loadtxt('SingleLineParameters_Test.txt')
 
 def SimInt_ID1(FITPAR):
     TPARs=np.zeros([Trapnumber+1,2])
     TPARs[:,0:2]=np.reshape(FITPAR[0:(Trapnumber+1)*2],(Trapnumber+1,2))
     SPAR=FITPAR[Trapnumber*2+2:Trapnumber*2+5]
-    (Coord)= CD.ID1CoordAssign(TPAR,SLD,Trapnumber,Pitch)
+    (Coord)= CD.ID1CoordAssign(TPARs,SLD,Trapnumber,Pitch)
     F1 = CD.FreeFormTrapezoid(Coord[:,:,0],Qx,Qz,Trapnumber) 
     M=np.power(np.exp(-1*(np.power(Qx,2)+np.power(Qz,2))*np.power(SPAR[0],2)),0.5)
     Formfactor=F1*M
@@ -255,7 +255,7 @@ for SampleNumber in range(len(Param[:,0])):
     Trapnumber = 3
     # DW, I0 and Bk paramters are defined internally, structural pramters are defined externally
     DW = 1.3
-    I0 = 0.0025
+    I0 = 0.01
     Bk =1
     SLD1 = 1;
     TPAR=np.zeros([Trapnumber+1,2])
@@ -281,17 +281,17 @@ for SampleNumber in range(len(Param[:,0])):
     (FITPAR,FITPARLB,FITPARUB)=CD.PBA_ID1(TPAR,SPAR,Trapnumber)
 
     R = np.random.normal(0, 0.225, [len(Qx[:,0]),len(Qx[0,:])])
-    (DummyIntensity,Amplitude)=SimInt_ID1(FITPAR)
-    PreInt=abs(Amplitude)
-    PreInt=np.power(PreInt,2)
-
-
-    M=np.amax(PreInt)
-    I0=(20000)/M # Scales the intensity so that the max is 20000
-    SPAR[1]=I0
-    Intensity=PreInt*I0+Bk
-
-    (FITPAR,FITPARLB,FITPARUB)=CD.PBA_ID1(TPAR,SPAR,Trapnumber) #regenerates FITPAR with proper intensity scaling
+    (Intensity,Amplitude)=SimInt_ID1(FITPAR)
+#    PreInt=abs(Amplitude)
+#    PreInt=np.power(PreInt,2)
+#
+#
+#    M=np.amax(PreInt)
+#    I0=(20000)/M # Scales the intensity so that the max is 20000
+#    SPAR[1]=I0
+#    Intensity=PreInt*I0+Bk
+#
+#    (FITPAR,FITPARLB,FITPARUB)=CD.PBA_ID1(TPAR,SPAR,Trapnumber) #regenerates FITPAR with proper intensity scaling
 
     N=(1/(np.power(Intensity,0.5)))*Intensity # Generates  noise
     N=N*R
@@ -303,11 +303,11 @@ for SampleNumber in range(len(Param[:,0])):
     MCPAR=np.zeros([7])
     MCPAR[0] = 1 # Chainnumber
     MCPAR[1] = len(FITPAR)
-    MCPAR[2] = 10000 #stepnumber
+    MCPAR[2] = 100 #stepnumber
     MCPAR[3] = 0 #randomchains
     MCPAR[4] = 20 # Resampleinterval
-    MCPAR[5] = 20 # stepbase
-    MCPAR[6] = 20 # steplength 
+    MCPAR[5] = 250 # stepbase
+    MCPAR[6] = 250 # steplength 
   
     
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
@@ -353,7 +353,7 @@ for SampleNumber in range(len(Param[:,0])):
             if SampledMatrix[i,0] != SampledMatrix[i-1,0]:
                 AcceptanceNumber=AcceptanceNumber+1
         Acceptprob=AcceptanceNumber/Acceptancetotal
-        
+        print(Acceptprob)
         if Acceptprob < 0.3:
             MCPAR[5]=MCPAR[5]+1
             MCPAR[6]=MCPAR[6]+1
@@ -362,14 +362,14 @@ for SampleNumber in range(len(Param[:,0])):
             MCPAR[6]=MCPAR[6]-1
         
     start_time = time.perf_counter()
-    MCPAR[0]=24
-    MCPAR[2]=800000
+    MCPAR[0]=2
+    MCPAR[2]=100
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
     MCMC_List=[0]*int(MCPAR[0])
     for i in range(int(MCPAR[0])):
         MCMC_List[i]=MCMCInitial[i,:]
     if __name__ =='__main__':  
-        pool = Pool(processes=12)
+        pool = Pool(processes=2)
               
         F=pool.map(MCMC_ID1,MCMC_List)
         F=tuple(F)
