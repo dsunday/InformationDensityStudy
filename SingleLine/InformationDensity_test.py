@@ -302,7 +302,7 @@ for SampleNumber in range(len(Param[:,0])):   #len(Param[:,0])
     MCPAR=np.zeros([7])
     MCPAR[0] = 1 # Chainnumber
     MCPAR[1] = len(FITPAR)
-    MCPAR[2] = 100 #stepnumber
+    MCPAR[2] = 1000 #stepnumber
     MCPAR[3] = 0 #randomchains
     MCPAR[4] = 20 # Resampleinterval
     MCPAR[5] = 350 # stepbase
@@ -354,15 +354,15 @@ for SampleNumber in range(len(Param[:,0])):   #len(Param[:,0])
         Acceptprob=AcceptanceNumber/Acceptancetotal
         print(Acceptprob)
         if Acceptprob < 0.3:
-            MCPAR[5]=MCPAR[5]+1
-            MCPAR[6]=MCPAR[6]+1
+            MCPAR[5]=MCPAR[5]+5
+            MCPAR[6]=MCPAR[6]+5
         if Acceptprob > 0.45:
-            MCPAR[5]=MCPAR[5]-1
-            MCPAR[6]=MCPAR[6]-1
+            MCPAR[5]=MCPAR[5]-5
+            MCPAR[6]=MCPAR[6]-5
         
     start_time = time.perf_counter()
     MCPAR[0]=24
-    MCPAR[2]=10000
+    MCPAR[2]=50000
     MCMCInitial=MCMCInit_ID1(FITPAR,FITPARLB,FITPARUB,MCPAR)
     MCMC_List=[0]*int(MCPAR[0])
     

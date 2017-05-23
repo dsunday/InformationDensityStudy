@@ -72,8 +72,8 @@ def PBA_ID2(TPAR,SPAR,Trapnumber,X1):
     SPARUB=SPAR[0:4]*1.2
 
     FITPAR=TPAR[:,0:2].ravel()
-    FITPARLB=FITPAR*0.8
-    FITPARUB=FITPAR*1.2
+    FITPARLB=FITPAR*0.05
+    FITPARUB=FITPAR*20
     FITPAR=np.append(FITPAR,SPAR)
        
     FITPARLB=np.append(FITPARLB,SPARLB)
@@ -82,9 +82,9 @@ def PBA_ID2(TPAR,SPAR,Trapnumber,X1):
     
     FITPAR=np.append(FITPAR,X1)
        
-    FITPARLB=np.append(FITPARLB,(X1-5))
+    FITPARLB=np.append(FITPARLB,(X1-8))
     
-    FITPARUB=np.append(FITPARUB,(X1+5))
+    FITPARUB=np.append(FITPARUB,(X1+8))
     
     return (FITPAR,FITPARLB,FITPARUB)
     

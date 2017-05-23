@@ -18,7 +18,7 @@ def SimInt_ID3M(FITPAR):
     TPARs[:,0:2]=np.reshape(FITPAR[0:(Trapnumber+1)*2],(Trapnumber+1,2))
     SPAR=FITPAR[Trapnumber*2+2:Trapnumber*2+5]
     X1=FITPAR[Trapnumber*2+5]
-    (Coord)= CD.ID3MCoordAssign(TPAR,SLD,Trapnumber,Pitch,X1)
+    (Coord)= CD.ID3MCoordAssign(TPARs,SLD,Trapnumber,Pitch,X1)
     F1 = CD.FreeFormTrapezoid(Coord[:,:,0],Qx,Qz,Trapnumber) 
     F2 = CD.FreeFormTrapezoid(Coord[:,:,1],Qx,Qz,Trapnumber) 
     M=np.power(np.exp(-1*(np.power(Qx,2)+np.power(Qz,2))*np.power(SPAR[0],2)),0.5)
@@ -57,13 +57,13 @@ def MCMC_ID3M(MCMC_List):
     L = int(MCPAR[1])
     Stepnumber= int(MCPAR[2])
         
-    SampledMatrix=np.zeros([Stepnumber,L+1]) 
-    SampledMatrix[0,:]=MCMCInit
+    SampledMatrixI=np.zeros([Stepnumber,L+1]) 
+    SampledMatrixI[0,:]=MCMCInit
     Move = np.zeros([L+1])
     
     ChiPrior = MCMCInit[L]
     for step in np.arange(1,Stepnumber,1): 
-        Temp = SampledMatrix[step-1,:].copy()
+        Temp = SampledMatrixI[step-1,:].copy()
         for p in range(L-1):
             StepControl = MCPAR[5]+MCPAR[6]*np.random.random_sample()
             Move[p] = (FITPARUB[p]-FITPARLB[p])/StepControl*(np.random.random_sample()-0.5) # need out of bounds check
@@ -75,26 +75,27 @@ def MCMC_ID3M(MCMC_List):
         (SimPost,AmpPost)=SimInt_ID3M(Temp)
         ChiPost=np.sum(CD.Misfit(Intensity2,SimPost))
         if ChiPost < ChiPrior:
-            SampledMatrix[step,0:L]=Temp[0:L]
-            SampledMatrix[step,L]=ChiPost
+            SampledMatrixI[step,0:L]=Temp[0:L]
+            SampledMatrixI[step,L]=ChiPost
             ChiPrior=ChiPost
             
         else:
             MoveProb = np.exp(-0.5*np.power(ChiPost-ChiPrior,2))
             if np.random.random_sample() < MoveProb:
-                SampledMatrix[step,0:L]=Temp[0:L]
-                SampledMatrix[step,L]=ChiPost
+                SampledMatrixI[step,0:L]=Temp[0:L]
+                SampledMatrixI[step,L]=ChiPost
                 ChiPrior=ChiPost
             else:
-                SampledMatrix[step,:]=SampledMatrix[step-1,:]
+                SampledMatrixI[step,:]=SampledMatrix[step-1,:]
     
-    ReSampledMatrix=np.zeros([int(MCPAR[2])/int(MCPAR[4]),len(SampledMatrix[1,:])])
+    ReSampledMatrixI=np.zeros([int(MCPAR[2])/int(MCPAR[4]),len(SampledMatrixI[1,:])])
 
     c=-1
-    for i in np.arange(0,len(SampledMatrix[:,1]),MCPAR[4]):
+    for i in np.arange(0,len(SampledMatrixI[:,1]),MCPAR[4]):
         c=c+1
-        ReSampledMatrix[c,:]=SampledMatrix[i,:]
-    return (ReSampledMatrix)
+        ReSampledMatrixI[c,:]=SampledMatrixI[i,:]
+    (UNCT_Param)=Uncertainty2T(ReSampledMatrixI)
+    return (UNCT_Param) #ReSampledMatrixI
     
     
 def Uncertainty2T(ReSampledMatrix):
@@ -227,9 +228,13 @@ def Uncertainty2T(ReSampledMatrix):
         vdUpper=voUpper-viUpper
         vtUpper=np.sum(vdUpper)
         vctUpper=np.sum(vcUpper)
-        return(vt,vct,vtLower,vctLower,vtUpper,vctUpper,WidthAvg,HeightAvg,WidthStd,HeightStd,S1Avg,S1Std,LinePlot,InnerPlot,OuterPlot)
+        RA=vt/vct
+        RAL=vtLower/vctLower
+        RAU=vtUpper/vctUpper
+        return(vt,vct,RA,vtLower,vctLower,RAL,vtUpper,vctUpper,RAU,WidthAvg,HeightAvg,WidthStd,HeightStd,S1Avg,S1Std,LinePlot,InnerPlot,OuterPlot)
+BR=np.zeros([len(Param[:,0]),19])
 
-for SampleNumber in range(len(Param[:,0])):
+for SampleNumber in range(2): #len(Param[:,0])
     #QxQz map definition
     Angle = Param[SampleNumber,3]
     Pitch = Param[SampleNumber,2]*2
@@ -262,7 +267,7 @@ for SampleNumber in range(len(Param[:,0])):
     Trapnumber = 3
     # DW, I0 and Bk paramters are defined internally, structural pramters are defined externally
     DW = 1.3
-    I0 = 0.0025
+    I0 = 0.01
     Bk =1
     SLD1 = 1;
     TPAR=np.zeros([Trapnumber+1,2])
@@ -290,18 +295,8 @@ for SampleNumber in range(len(Param[:,0])):
     (FITPAR,FITPARLB,FITPARUB)=CD.PBA_ID2(TPAR,SPAR,Trapnumber,X1) #Does not need to be changed
 
     R = np.random.normal(0, 0.225, [len(Qx[:,0]),len(Qx[0,:])])
-    (DummyIntensity,Amplitude)=SimInt_ID3M(FITPAR)
-    PreInt=abs(Amplitude)
-    PreInt=np.power(PreInt,2)
-
-
-    M=np.amax(PreInt)
-    I0=(20000)/M # Scales the intensity so that the max is 20000
-    SPAR[1]=I0
-    Intensity=PreInt*I0+Bk
-
-    (FITPAR,FITPARLB,FITPARUB)=CD.PBA_ID2(TPAR,SPAR,Trapnumber,X1) #regenerates FITPAR with proper intensity scaling
-
+    (Intensity,Amplitude)=SimInt_ID3M(FITPAR)
+    
     N=(1/(np.power(Intensity,0.5)))*Intensity # Generates  noise
     N=N*R
     Intensity2=Intensity+R; # Applies Noise
@@ -312,16 +307,16 @@ for SampleNumber in range(len(Param[:,0])):
     MCPAR=np.zeros([7])
     MCPAR[0] = 1 # Chainnumber
     MCPAR[1] = len(FITPAR)
-    MCPAR[2] = 1000 #stepnumber
+    MCPAR[2] = 10000 #stepnumber
     MCPAR[3] = 0 #randomchains
     MCPAR[4] = 20 # Resampleinterval
-    MCPAR[5] = 20 # stepbase
-    MCPAR[6] = 20 # steplength 
+    MCPAR[5] = 1400 # stepbase
+    MCPAR[6] = 1400 # steplength 
   
     
     MCMCInitial=MCMCInit_ID3M(FITPAR,FITPARLB,FITPARUB,MCPAR)
     Acceptprob=0;
-    while Acceptprob < 0.3 or Acceptprob > 0.4:
+    while Acceptprob < 0.3 or Acceptprob > 0.45:
         L = int(MCPAR[1])
         Stepnumber= int(MCPAR[2])
         
@@ -364,30 +359,42 @@ for SampleNumber in range(len(Param[:,0])):
         Acceptprob=AcceptanceNumber/Acceptancetotal
         print(Acceptprob,MCPAR[5],MCPAR[6])
         if Acceptprob < 0.3:
-            MCPAR[5]=MCPAR[5]+1
-            MCPAR[6]=MCPAR[6]+1
-        if Acceptprob > 0.4:
-            MCPAR[5]=MCPAR[5]-1
-            MCPAR[6]=MCPAR[6]-1
+            MCPAR[5]=MCPAR[5]+20
+            MCPAR[6]=MCPAR[6]+20
+        if Acceptprob > 0.45:
+            MCPAR[5]=MCPAR[5]-20
+            MCPAR[6]=MCPAR[6]-20
         
     start_time = time.perf_counter()
     MCPAR[0]=24
-    MCPAR[2]=800000
+    MCPAR[2]=400000
     MCMCInitial=MCMCInit_ID3M(FITPAR,FITPARLB,FITPARUB,MCPAR)
     MCMC_List=[0]*int(MCPAR[0])
+    
+
     for i in range(int(MCPAR[0])):
         MCMC_List[i]=MCMCInitial[i,:]
     if __name__ =='__main__':  
-        pool = Pool(processes=24)
+        pool = Pool(processes=1)
               
         F=pool.map(MCMC_ID3M,MCMC_List)
-        F=tuple(F)
+    
         Savename='P'+str(int(Pitch))+'_'+'W'+str(int(W))+'_'+'H'+str(int(H))+'_'+'A'+str(int(Angle))
-        np.save(Savename,F) 
         end_time=time.perf_counter()   
         print(end_time-start_time)    
-        
-        ReSampledMatrix=F[0]
-        (UNCT_Param)=Uncertainty2T(ReSampledMatrix)
-        SavenameU='P'+str(int(Pitch))+'_'+'W'+str(int(W))+'_'+'H'+str(int(H))+'_'+'A'+str(int(Angle))+'Uncertainty'
-        pickle.dump(UNCT_Param,open(SavenameU,"wb"))
+        nonzerocount=0;      
+        for i in range(int(MCPAR[0])):
+            A=F[i]
+            if A[0] != 0:
+                nonzerocount=nonzerocount+1
+        print(nonzerocount)
+        UNCT=np.zeros([nonzerocount,15])
+        nzc=-1        
+        for i in range(int(MCPAR[0])):
+            A=F[i]
+            if A[0]!=0:
+                nzc=nzc+1                
+                UNCT[nzc,0:15]=A[0:15]
+        UNCTAvg=np.average(UNCT,0)
+        BR[SampleNumber,0]=W; BR[SampleNumber,1]=H; BR[SampleNumber,2]=Pitch; BR[SampleNumber,3]=Angle; BR[SampleNumber,4:19]=UNCTAvg;
+        np.savetxt('TripleLine.csv',BR);
